@@ -34,7 +34,7 @@ public class Cryptor {
         System.out.println(b.toString());
     }
 
-    private static byte[] encrypt_bytes(byte[] key, byte[] b) {
+    private static byte[] crypt_bytes(byte[] key, byte[] b) {
         assert b.length == key.length;
 
         byte[] output = new byte[b.length];
@@ -42,14 +42,6 @@ public class Cryptor {
             output[i] = (byte) (key[i] ^ b[i]);
         }
 
-        return output;
-    }
-
-    private static byte[] decrypt_bytes(byte[] key, byte[] b) {
-        byte[] output = new byte[b.length];
-        for (int i = 0; i < b.length; i++) {
-            output[i] = (byte) (key[i] ^ b[i]);
-        }
         return output;
     }
 
@@ -127,7 +119,7 @@ public class Cryptor {
         return message;
     }
 
-    private static String get_result_message(int retVal, File f, int buffer_size){
+    private static String get_result_message(int retVal, File f, int buffer_size) {
         switch (retVal) {
             case ErrorCode.E_FILE_ALREADY_ENCRYPTED:
                 return "File is already encrypted";
@@ -144,12 +136,12 @@ public class Cryptor {
                 break;
         }
         return "success";
-        
+
     }
-    
+
     public static String encrypt_file(String key_file_path, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
         FileIO.log("Reading in binary file named : " + file_path);
-        int retVal = crypt(key_file_path, file_path, buffer_size, "E");       
+        int retVal = crypt(key_file_path, file_path, buffer_size, "E");
         return get_result_message(retVal, new File(file_path), buffer_size);
 
     }
@@ -210,19 +202,19 @@ public class Cryptor {
                     // circular key input
                     key_input.seek(total_bytes_read % (key.length() - key.length() % buffer_size));
                     key_input.read(key_buffer, 0, num_bytes_read);
-                    encrypted_buffer = encrypt_bytes(key_buffer, file_buffer);
+                    encrypted_buffer = crypt_bytes(key_buffer, file_buffer);
                     System.out.println("file size:" + file.length());
                     file_output.seek(total_bytes_read);
                     file_output.write(encrypted_buffer, 0, num_bytes_read);
                     System.out.println("file size:" + file.length());
 
                     total_bytes_read += num_bytes_read;
-                    bytes_remaining = file.length() - total_bytes_read;
+                    bytes_remaining -= num_bytes_read;
 
-                    System.out.println("key buffer:" + Arrays.toString(key_buffer));
-                    System.out.println("file buffer: " + Arrays.toString(file_buffer));
-                    System.out.println("enc buffer:" + Arrays.toString(encrypted_buffer));
-                    System.out.println("======================");
+//                    System.out.println("key buffer:" + Arrays.toString(key_buffer));
+//                    System.out.println("file buffer: " + Arrays.toString(file_buffer));
+//                    System.out.println("enc buffer:" + Arrays.toString(encrypted_buffer));
+//                    System.out.println("======================");
                 } else {
                     System.err.println("No bytes were read");
                 }
@@ -261,7 +253,7 @@ public class Cryptor {
 
     public static String decrypt_file(String key_file_path, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
         FileIO.log("Reading in binary file named : " + file_path);
-        int retVal = crypt(key_file_path, file_path, buffer_size, "D");       
+        int retVal = crypt(key_file_path, file_path, buffer_size, "D");
         return get_result_message(retVal, new File(file_path), buffer_size);
 
     }
