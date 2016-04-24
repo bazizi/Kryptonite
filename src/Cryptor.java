@@ -1,12 +1,13 @@
-
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+
 
 /**
  *
@@ -20,24 +21,30 @@ public class Cryptor {
     private static final byte[] encryption_stamp = "10a34637ad661d98ba3344717656fcc76209c2f8".getBytes();
     
     public static void main(String args[]) throws IOException, NoSuchAlgorithmException{
-        Cryptor.encrypt_file("x35", "test.txt");
-        Cryptor.decrypt_file("x35", "test.txt");
+//        Cryptor.encrypt_file("x35", "test.txt");
+//        Cryptor.decrypt_file("x35", "test.txt");
         //Cryptor.encrypt_dir("xes", "/home/behnam/virusLab");
         //Cryptor.decrypt_dir("xes", "/home/behnam/virusLab");
 
     }
+
+    public static void logByte(byte[] b){
+        System.out.println(b.toString());
+    }
     
-    public static byte[] encrypt_bytes(byte[] key, byte[] b){
+    private static byte[] encrypt_bytes(byte[] key, byte[] b){
+        assert b.length == key.length;
+        
         byte[] output = new byte[b.length];
         for(int i=0; i<b.length; i++){
-            output[i] = (byte) (key[i % key.length] ^ b[i]);
+            output[i] = (byte) (key[i] ^ b[i]);
         }
 
         return output;
     }
     
     
-    public static byte[] decrypt_bytes(byte[] key, byte[] b){
+    private static byte[] decrypt_bytes(byte[] key, byte[] b){
         byte[] output = new byte[b.length];
         for(int i=0; i<b.length; i++){
             output[i] = (byte) (key[i % key.length] ^ b[i]);
@@ -83,157 +90,162 @@ public class Cryptor {
         return result;
     }
     
-    public static boolean are_bytes_encrypted(byte[] b) throws NoSuchAlgorithmException{
+    public static boolean is_file_encrypted(File f) throws NoSuchAlgorithmException{
         //System.out.println(Arrays.copyOfRange(b, 0, encryption_stamp.length));
         //System.out.println(encryption_stamp);
-        return b.length >= encryption_stamp.length + SHA256("".getBytes()).length && Arrays.equals(Arrays.copyOfRange(b, 0, encryption_stamp.length), encryption_stamp);
-    }
-
+        return true;
+    } 
     
-    public static String encrypt_dir(String key, String dir_path) throws IOException, NoSuchAlgorithmException{
+    public static String encrypt_dir(String key, String dir_path, int buffer_size) throws IOException, NoSuchAlgorithmException{
 
         String message = "";
         ArrayList<File> files = DirWalker.walk(dir_path);
         
         for(File fl: files){
-            message += Cryptor.encrypt_file(key, fl.getAbsolutePath());
+            message += Cryptor.encrypt_file(key, fl.getAbsolutePath(), buffer_size);
         }
         return message;
     }
 
-    public static String decrypt_dir(String key, String dir_path) throws IOException, NoSuchAlgorithmException{
+    public static String decrypt_dir(String key_path, String dir_path, int buffer_size) throws IOException, NoSuchAlgorithmException{
         String message = "";
         ArrayList<File> files = DirWalker.walk(dir_path);
         for(File fl: files){
-            message += Cryptor.decrypt_file(key, fl.getAbsolutePath());
+            message += decrypt_file(key_path, fl.getAbsolutePath(), buffer_size);
         }
         return message;        
     }
     
-    public static String encrypt_file(String key, String file_path) throws IOException, NoSuchAlgorithmException{        
-        //Read encrypted file in bytes (contains digital signature + stamp)
-        file = new FileIO(file_path);
-        
-        //all bytes read from file
-        byte[] file_bytes = file.read();
-                
-        
-        //all bytes - signature - stamp
-        byte[] encrypted_bytes = null;
-        
-        //digital signature
-        byte[] digital_signature = SHA256(file_bytes);
-//        System.out.println("Digital signature is being written: " + Arrays.toString(digital_signature));
-        
-        
-        //Convert user-entered key to bytes
-        byte[] key_bytes = key.getBytes();
-        
-        
-        //This byte-array will contain the output to be written on the encrypted file
-        byte[] output = new byte[SHA256(file_bytes).length + encryption_stamp.length + file_bytes.length];
+    public static String encrypt_file(String key_file_path, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException{
+        FileIO.log("Reading in binary file named : " + file_path);
+        File file = new File(file_path);
+        File key = new File(key_file_path);
+        FileIO.log("File size: " + file.length());
+        long bytes_remaining = file.length();
+        System.out.println("Key length:" + key.length());
 
-        //Copy encryption_stamp to the beginning of file to be written
-        System.arraycopy(encryption_stamp, 0, output, 0, encryption_stamp.length);
-
-        //Copy the digital signature right after the stamp
-        System.arraycopy(digital_signature, 0, output, encryption_stamp.length, digital_signature.length);
-        
-        
-        //Make sure this file is not already encrypted
-        if(are_bytes_encrypted(file_bytes)){
-            FileIO.log(file_path + " is already encrypted");
-            return "Error:" + file_path + " is already encrypted\n";
+        if(key.length() < buffer_size){
+            System.err.println("ERROR: Key length must be at least "
+                    + "as large as the buffer size");
+            System.exit(1);
+        }else if(key.length() % buffer_size != 0){
+            System.out.println("WARNING: Key length should be a multiple "
+                    + "of 1000. The last " + key.length() % buffer_size + " will be"
+                    + "thrown away.");
         }
-
-        //output = encryption_stamp + encrypted_bytes
-        //encrypt file bytes
-        encrypted_bytes = encrypt_bytes(key_bytes, file_bytes);
-
-        //add encrypted bytes to the end output to be written
-        //output = stamp + signature + encrypted bytes
-        System.arraycopy(encrypted_bytes, 0, output, encryption_stamp.length + digital_signature.length, encrypted_bytes.length);
-
-//        System.out.println("digicert + stamp:" + Arrays.toString(Arrays.copyOfRange(output, 0, SHA256("".getBytes()).length + encryption_stamp.length)));
-
         
+        // write encryption stamp
         
-        //finally write the output to encrypted file
-        file.write(output);
-//        file.rename(encrypt_file_name(file_path));
+        // write hash of original fille
         
-        //file.rename(encrypt_file_name(file.getFileName()));
-        String message = file_path + " was encrypted successfully!\n";
-        System.out.println(message);
-        return message;
+        // read into buffer, encrypt, write back to file       
+        
+      try {
+        int num_bytes_read = 0;
+        RandomAccessFile file_input = null;
+        RandomAccessFile key_input = null;
+        RandomAccessFile file_output = null;
+        byte[] file_buffer = new byte[buffer_size];
+        byte[] key_buffer = new byte[buffer_size];
+        byte[] encrypted_buffer = new byte[buffer_size];
+        try {
+          int total_bytes_read = 0;
+          file_input = new RandomAccessFile(file, "r");
+          key_input = new RandomAccessFile(key, "r");
+
+          file_output = new RandomAccessFile(file, "rw");
+            System.out.println("file length:" + file.length());
+
+          // while the file is not fully read
+          while(total_bytes_read < file.length()){
+            System.out.println("reading file");
+            //input.read() returns -1, 0, or more :
+            buffer_size = (int) ((buffer_size > bytes_remaining)? bytes_remaining : buffer_size);
+            // read buffer into file_buffer
+            num_bytes_read = file_input.read(file_buffer, 0, buffer_size); 
+
+            System.out.println("buffer size: " + buffer_size);
+            System.out.println("total bytes read:" + total_bytes_read);
+            System.out.println("num bytes read into buffer:" + num_bytes_read);          
+            System.out.println("remaining num bytes:" + bytes_remaining);
+            System.out.println("file size:" + file.length());
+
+            if (num_bytes_read > 0){
+                // circular key input
+                key_input.seek(total_bytes_read % (key.length() - key.length() % buffer_size));
+                key_input.read(key_buffer, 0, num_bytes_read);
+                encrypted_buffer = encrypt_bytes(key_buffer, file_buffer);
+                file_output.seek(total_bytes_read);
+                System.out.println("file size:" + file.length());
+//                System.out.println("encrypted buffer size: " + encrypted_buffer.length);
+
+                file_output.write(encrypted_buffer, 0, num_bytes_read);
+                System.out.println("file size:" + file.length());
+
+                total_bytes_read += num_bytes_read;
+                bytes_remaining = file.length() - total_bytes_read;
+
+                System.out.println("key buffer:" + Arrays.toString(key_buffer));
+                System.out.println("file buffer: " + Arrays.toString(file_buffer));
+                System.out.println("enc buffer:" + Arrays.toString(encrypted_buffer));
+                System.out.println("======================");
+            }else{
+                System.err.println("No bytes were read");
+            }
+            
+          }
+          FileIO.log("total Num bytes read: " + total_bytes_read);
+        }catch (OutOfMemoryError e){
+        
+        }finally {
+                System.out.println("file size:" + file.length());
+
+            FileIO.log("Closing input stream.");
+          
+          file_input.close();
+          file_output.close();
+          key_input.close();
+        }
+      }
+      catch (FileNotFoundException ex) {
+        FileIO.log("File not found.");
+      }
+      
+      return "encrypted";
 
     }
 
-    public static String decrypt_file(String key, String file_path) throws IOException, NoSuchAlgorithmException {
+    public static String decrypt_file(String key, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
         String message = file_path + " was decrypted successfully!\n";
 
-        //Read decrypted file in bytes
-        file = new FileIO(file_path);
-        
-        //all bytes read from the file
-        byte[] file_bytes = file.read();
-
-        //digital signature is read from the file (if any)
-        byte[] digital_signature = new byte[SHA256("".getBytes()).length];
-                
-
-        
-        //convert key to bytes
-        byte[] key_bytes = key.getBytes();
-
-        //This is the final output written to the decrypted file
-        byte[] output; 
-
-        //Make sure this file is already encrypted
-        if(!are_bytes_encrypted(file_bytes)){
-            FileIO.log(file_path + " is not encrypted");
-            return "Error:" + file_path + " is not encrypted\n";
-        }
-
-        System.arraycopy(file_bytes, encryption_stamp.length, digital_signature, 0, digital_signature.length);
-//        System.out.println("digicert + stamp:" + Arrays.toString(Arrays.copyOfRange(file_bytes, 0, digital_signature.length + encryption_stamp.length)));
-//        System.out.println(Arrays.toString(digital_signature));
-        
-        
-        //This variable will contain encrypted bytes (file_bytes - encryption_stamp)
-        byte[] encrypted_bytes = new byte[file_bytes.length - encryption_stamp.length - digital_signature.length];
-        
-        
-        //Get the encrypted portion of the file (i.e., file_bytes - encryption_stamp part)
-        System.arraycopy(file_bytes, encryption_stamp.length + digital_signature.length,
-                encrypted_bytes, 0, file_bytes.length - encryption_stamp.length - digital_signature.length);
-//        System.out.println(encrypted_bytes.length);
-        output = decrypt_bytes(key_bytes, encrypted_bytes);
-
-        //Write output to decrypted file
-        if(Arrays.equals(digital_signature, SHA256(output))){
-            file.write(output); 
-//            file.rename(decrypt_file_name(file_path));
-                //file.rename(decrypt_file_name(file.getFileName()));
-    
-        }else{
-            //System.out.println(Arrays.toString(digital_signature));
-            //System.out.println(Arrays.toString(SHA256(output)));
-            message = "File could not be decrypted. Wrong password and/or signature.\n";
-        }
-        
-        System.out.println(message);
-
         return message;
 
     }
     
-    public static byte [] SHA256(byte[] b) throws NoSuchAlgorithmException{
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-
-        md.update(b); // Change this to "UTF-16" if needed
-        return md.digest();
+    public static byte [] SHA256(File f) throws NoSuchAlgorithmException, IOException{
+        return getFileChecksum(MessageDigest.getInstance("SHA-256"), f);
     }
 
+    private static byte[] getFileChecksum(MessageDigest digest, File file) throws IOException
+    {
+        //Get file file_input stream for reading the file content
+        FileInputStream fis = new FileInputStream(file);
+
+        //Create byte array to read data in chunks
+        byte[] byteArray = new byte[1024];
+        int bytesCount = 0; 
+
+        //Read file data and update in message digest
+        while ((bytesCount = fis.read(byteArray)) != -1) {
+            digest.update(byteArray, 0, bytesCount);
+        };
+
+        //close the stream; We don't need it now.
+        fis.close();
+
+        //Get the hash's bytes
+        return digest.digest();
+    }    
+    
     
 }

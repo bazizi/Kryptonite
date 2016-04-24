@@ -27,6 +27,7 @@ public class MainFrame extends javax.swing.JFrame {
     private static final String chosen_file = null;
     private static final String chosen_name = null;
     private static int isEncryptionPasswordHidden = 1;
+    private static int default_buffer_size = 1000;
     /**
      * Creates new form MainFrame
      */
@@ -834,9 +835,9 @@ public class MainFrame extends javax.swing.JFrame {
         decryptionKey.setText(new String(encryptionKey.getPassword()));
         decryptionKey2.setText(new String(encryptionKey.getPassword()));
         file_to_decrypt.setText(file_to_encrypt.getText());
-        
+        int buffer_size = default_buffer_size;
         try {
-            message = Cryptor.encrypt_file(new String(encryptionKey.getPassword()), file_to_encrypt.getText());
+            message = Cryptor.encrypt_file(new String(encryptionKey.getPassword()), file_to_encrypt.getText(), buffer_size);
         } catch (IOException | NoSuchAlgorithmException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -853,9 +854,9 @@ public class MainFrame extends javax.swing.JFrame {
         encryptionKey.setText(new String(decryptionKey.getPassword()));
         encryptionKey2.setText(new String(decryptionKey.getPassword()));
         file_to_encrypt.setText(file_to_decrypt.getText());
-        
+        int buffer_size = default_buffer_size;
         try {
-            message = Cryptor.decrypt_file(new String(decryptionKey.getPassword()), file_to_decrypt.getText());
+            message = Cryptor.decrypt_file(new String(decryptionKey.getPassword()), file_to_decrypt.getText(), buffer_size);
         } catch (IOException | NoSuchAlgorithmException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -867,9 +868,9 @@ public class MainFrame extends javax.swing.JFrame {
         decryptionKey.setText(new String(encryptionKey.getPassword()));
         decryptionKey2.setText(new String(encryptionKey.getPassword()));
         dir_to_decrypt.setText(dir_to_encrypt.getText());
-        
+        int buffer_size = default_buffer_size;
         try {
-            message  = Cryptor.encrypt_dir(new String(encryptionKey2.getPassword()), dir_to_encrypt.getText());
+            message  = Cryptor.encrypt_dir(new String(encryptionKey2.getPassword()), dir_to_encrypt.getText(), buffer_size);
         } catch (IOException | NoSuchAlgorithmException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -882,9 +883,9 @@ public class MainFrame extends javax.swing.JFrame {
         encryptionKey.setText(new String(decryptionKey2.getPassword()));
         encryptionKey2.setText(new String(decryptionKey2.getPassword()));
         dir_to_encrypt.setText(dir_to_decrypt.getText());
-
+        int buffer_size = default_buffer_size;
         try {
-            message  = Cryptor.decrypt_dir(new String(decryptionKey2.getPassword()), dir_to_decrypt.getText());
+            message  = Cryptor.decrypt_dir(new String(decryptionKey2.getPassword()), dir_to_decrypt.getText(), buffer_size);
         } catch (IOException | NoSuchAlgorithmException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -939,30 +940,33 @@ public class MainFrame extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) throws IOException, NoSuchAlgorithmException {
-        if(args.length == 3){
-            if(args[0].equals("-ef")){
-                Cryptor.encrypt_file(args[2], args[1]);
-                return;
-            }else if(args[0].equals("-ed")){
-                Cryptor.encrypt_dir(args[2], args[1]);
-                return;          
-            }else if(args[0].equals("-df")){
-                Cryptor.decrypt_file(args[2], args[1]);
-                return;
-            }else if(args[0].equals("-dd")){
-                Cryptor.decrypt_dir(args[2], args[1]);
-                return;          
+        if(args.length >= 3){
+            switch (args[0]) {
+                case "-ef":
+                    Cryptor.encrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    return;
+                case "-ed":
+                    Cryptor.encrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    return;
+                case "-df":
+                    Cryptor.decrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    return;
+                case "-dd":
+                    Cryptor.decrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));          
+                    return;
+                default:
+                    break;
             }
         }
         String help = "Command line usage examples:\n"
                 + "Encrypt directory:\n     "
-                + "java -jar Kryptonite.jar -ed /PATH/TO/DIR \"PASSWORD\"\n\n"
+                + "java -jar Kryptonite.jar -ed /PATH/TO/DIR /PATH/TO/KEY\n\n"
                 + "Encrypt file:\n     "
-                + "java -jar Kryptonite.jar -ef /PATH/TO/FILE \"PASSWORD\"\n\n"                
+                + "java -jar Kryptonite.jar -ef /PATH/TO/FILE /PATH/TO/KEY\n\n"                
                 + "Decrypt directory:\n     "
-                + "java -jar Kryptonite.jar -dd /PATH/TO/DIR \"PASSWORD\"\n\n"
+                + "java -jar Kryptonite.jar -dd /PATH/TO/DIR /PATH/TO/KEY\n\n"
                 + "Decrypt file:\n     "
-                + "java -jar Kryptonite.jar -df /PATH/TO/FILE \"PASSWORD\"\n\n";
+                + "java -jar Kryptonite.jar -df /PATH/TO/FILE /PATH/TO/KEY\n\n";
 ;
         System.out.println(help);
         if(args.length == 1 && args[0].equals("-h")) return;

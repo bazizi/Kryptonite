@@ -3,8 +3,12 @@
  *
  * @author behnam
  */
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,30 +17,42 @@ import java.nio.file.StandardOpenOption;
 /** JDK 7+. */
 public class FileIO {
   
-  public static void main(String [] args) throws IOException{
-    FileIO binary = new FileIO("test.txt");
-    byte[] bytes = binary.read();
-    FileIO.log(bytes);
-    FileIO.log(bytes[0] ^  010100);
-    FileIO.log("Hello".getBytes());
-    //binary.write(bytes);
-  }
+    public static void main(String [] args) throws IOException{
+      FileIO binary = new FileIO("test.txt");
+      byte[] bytes = binary.read();
+      FileIO.log(bytes);
+      FileIO.log(bytes[0] ^  010100);
+      FileIO.log("Hello".getBytes());
+      //binary.write(bytes);
+    }
 
-  private String file_path;
+    private String file_path;
 
-  public FileIO(String file_name){
-      this.file_path = file_name;
-  }
+    public FileIO(String file_name){
+        this.file_path = file_name;
+    }
+
+    /*
+    @param aInputFileName the path to the file to read from
+    @param bufferSize the size of the buffer
+    @offset offset*bufferSize = 
+    */
   
-  public byte[] read() throws IOException {
-    Path path = Paths.get(this.file_path);
-    return Files.readAllBytes(path);
-  }
-  
-  public String getFilePath(){
-      return file_path;
-  }
+    byte[] read(int offset, int bufferSize) throws IOException{
+      return new byte[0];
+    }    
 
+
+  
+    public byte[] read() throws IOException {
+      Path path = Paths.get(this.file_path);
+      return Files.readAllBytes(path);
+    }
+
+    public String getFilePath(){
+        return file_path;
+    }
+  
     public String getFilePathWithoutExtension(){
       int pos = file_path.lastIndexOf(".");
       if (pos > 0) {
@@ -71,5 +87,5 @@ public class FileIO {
     public static void log(Object aMsg){
       System.out.println(String.valueOf(aMsg));
     }
-
+    
 }  
