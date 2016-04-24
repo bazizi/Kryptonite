@@ -127,9 +127,34 @@ public class Cryptor {
         return message;
     }
 
+    private static String get_result_message(int retVal, File f, int buffer_size){
+        switch (retVal) {
+            case ErrorCode.E_FILE_ALREADY_ENCRYPTED:
+                return "File is already encrypted";
+            case ErrorCode.E_FILE_NOT_ENCRYPTED:
+                return "File is not encrypted";
+            case ErrorCode.E_KEY_TOO_SMALL:
+                return "ERROR: Key length must be at least "
+                        + "as large as the buffer size";
+            case ErrorCode.W_KEY_NOT_MULTIPLE_OF_1000:
+                return "WARNING: Key length should be a multiple "
+                        + "of 1000. The last " + f.length() % buffer_size + " will be"
+                        + "thrown away.";
+            default:
+                break;
+        }
+        return "success";
+        
+    }
+    
     public static String encrypt_file(String key_file_path, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
         FileIO.log("Reading in binary file named : " + file_path);
+        int retVal = crypt(key_file_path, file_path, buffer_size, "E");       
+        return get_result_message(retVal, new File(file_path), buffer_size);
 
+    }
+
+    public static int crypt(String key_file_path, String file_path, int buffer_size, String operation) throws IOException, NoSuchAlgorithmException {
         File file = new File(file_path);
         File key = new File(key_file_path);
         FileIO.log("File size: " + file.length());
@@ -144,21 +169,19 @@ public class Cryptor {
         file_input = new RandomAccessFile(file, "r");
         key_input = new RandomAccessFile(key, "r");
 
-        long bytes_remaining = file.length();
+        long bytes_remaining = (operation.equals("E")) ? file.length() : file.length() - encryption_stamp.length - checksum_size;
         System.out.println("Key length:" + key.length());
 
-        if (is_file_encrypted(file_input)) {
-            return file_path + " is already encrypted";
+        if (operation.equals("E") && is_file_encrypted(file_input)) {
+            return ErrorCode.E_FILE_ALREADY_ENCRYPTED;
+        } else if (operation.equals("D") && !is_file_encrypted(file_input)) {
+            return ErrorCode.E_FILE_NOT_ENCRYPTED;
         }
 
         if (key.length() < buffer_size) {
-            System.err.println("ERROR: Key length must be at least "
-                    + "as large as the buffer size");
-            System.exit(1);
+            return ErrorCode.E_KEY_TOO_SMALL;
         } else if (key.length() % buffer_size != 0) {
-            System.out.println("WARNING: Key length should be a multiple "
-                    + "of 1000. The last " + key.length() % buffer_size + " will be"
-                    + "thrown away.");
+            return ErrorCode.W_KEY_NOT_MULTIPLE_OF_1000;
         }
 
         // write encryption stamp
@@ -167,6 +190,7 @@ public class Cryptor {
         try {
             file_output = new RandomAccessFile(file, "rw");
             System.out.println("file length:" + file.length());
+            System.out.println("bytes remaining:" + bytes_remaining);
 
             // while the file is not fully read
             while (bytes_remaining > 0) {
@@ -204,12 +228,17 @@ public class Cryptor {
                 }
 
             }
-            file_output.seek(file_output.length());
-            file_output.write(encryption_stamp);
-            
-            System.out.println("File length: " + file_output.length());
-            System.out.println("Stamp length: " + encryption_stamp.length);
-            file_output.write(SHA256(new File(file_path)));
+
+            if (operation.equals("E")) {
+                file_output.seek(file_output.length());
+                file_output.write(encryption_stamp);
+
+                System.out.println("File length: " + file_output.length());
+                System.out.println("Stamp length: " + encryption_stamp.length);
+                file_output.write(SHA256(new File(file_path)));
+            } else {
+                file_output.setLength(total_bytes_read);
+            }
 
             FileIO.log("total Num bytes read: " + total_bytes_read);
         } catch (OutOfMemoryError e) {
@@ -226,14 +255,14 @@ public class Cryptor {
             key_input.close();
         }
 
-        return file_path + " was encrypted successfully";
+        return 0;
 
     }
 
-    public static String decrypt_file(String key, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
-        String message = file_path + " was decrypted successfully!\n";
-
-        return message;
+    public static String decrypt_file(String key_file_path, String file_path, int buffer_size) throws IOException, NoSuchAlgorithmException {
+        FileIO.log("Reading in binary file named : " + file_path);
+        int retVal = crypt(key_file_path, file_path, buffer_size, "D");       
+        return get_result_message(retVal, new File(file_path), buffer_size);
 
     }
 
@@ -258,7 +287,7 @@ public class Cryptor {
 
         //close the stream; We don't need it now.
         fis.close();
-        
+
         System.out.println("Checksum size: " + digest.digest().length);
 
         //Get the hash's bytes
