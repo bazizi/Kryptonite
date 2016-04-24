@@ -943,16 +943,16 @@ public class MainFrame extends javax.swing.JFrame {
         if(args.length >= 3){
             switch (args[0]) {
                 case "-ef":
-                    Cryptor.encrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    System.out.println(Cryptor.encrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3])));
                     return;
                 case "-ed":
-                    Cryptor.encrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    System.out.println(Cryptor.encrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3])));
                     return;
                 case "-df":
-                    Cryptor.decrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));
+                    System.out.println(Cryptor.decrypt_file(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3])));
                     return;
                 case "-dd":
-                    Cryptor.decrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3]));          
+                    System.out.println(Cryptor.decrypt_dir(args[2], args[1], (args.length == 3)?  default_buffer_size : Integer.parseInt(args[3])));          
                     return;
                 default:
                     break;
