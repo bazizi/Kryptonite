@@ -122,16 +122,20 @@ public class Cryptor {
     private static String get_result_message(int retVal, File f, int buffer_size) {
         switch (retVal) {
             case ErrorCode.E_FILE_ALREADY_ENCRYPTED:
-                return "File is already encrypted";
+                return String.format("'%s' is already encrypted\n", f.getAbsolutePath());
             case ErrorCode.E_FILE_NOT_ENCRYPTED:
-                return "File is not encrypted";
+                return String.format("'%s' is not encrypted\n", f.getAbsolutePath());
             case ErrorCode.E_KEY_TOO_SMALL:
-                return "ERROR: Key length must be at least "
-                        + "as large as the buffer size";
+                return String.format("ERROR: Key length must be at least "
+                        + "as large as the buffer size (%d)\n", buffer_size);
+            case ErrorCode.E_FILE_NOT_FOUND:
+                return String.format("ERROR: '%s' not found or not accessible with this user\n", f.getAbsolutePath());
+            case ErrorCode.E_OUT_OF_MEMORY:
+                return String.format("ERROR: Your computer ran out of memeory\n");
             default:
                 break;
         }
-        return "success";
+        return "Encrypted: '" + f.getAbsolutePath() + "'\n";
 
     }
 
@@ -156,6 +160,7 @@ public class Cryptor {
         int total_bytes_read = 0;
         file_input = new RandomAccessFile(file, "r");
         key_input = new RandomAccessFile(key, "r");
+        file_output = new RandomAccessFile(file, "rw");
 
         long bytes_remaining = (operation.equals("E")) ? file.length() : file.length() - encryption_stamp.length - checksum_size;
         System.out.println("Key length:" + key.length());
@@ -170,7 +175,7 @@ public class Cryptor {
             return ErrorCode.E_KEY_TOO_SMALL;
         } else if (key.length() % buffer_size != 0) {
             System.out.println("WARNING: Key length should be a multiple "
-                    + "of 1000. The last " + file_input.length() % buffer_size + " will be"
+                    + "of " + buffer_size + ". The last " + key.length() % buffer_size + " will be"
                     + "thrown away.");
         }
 
@@ -178,9 +183,8 @@ public class Cryptor {
         // write hash of original fille
         // read into buffer, encrypt, write back to file       
         try {
-            file_output = new RandomAccessFile(file, "rw");
-            System.out.println("file length:" + file.length());
-            System.out.println("bytes remaining:" + bytes_remaining);
+//            System.out.println("file length:" + file.length());
+//            System.out.println("bytes remaining:" + bytes_remaining);
 
             // while the file is not fully read
             while (bytes_remaining > 0) {
@@ -235,8 +239,7 @@ public class Cryptor {
             return ErrorCode.E_OUT_OF_MEMORY;
 
         } catch (FileNotFoundException ex) {
-            
-            FileIO.log("File not found.");
+            return ErrorCode.E_FILE_NOT_FOUND;
         } finally {
             System.out.println("file size:" + file.length());
 
