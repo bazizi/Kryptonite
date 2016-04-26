@@ -85,7 +85,7 @@ public class Cryptor {
 
     public static boolean is_file_encrypted(RandomAccessFile f) throws NoSuchAlgorithmException, IOException {
 
-        if (f.length() < encryption_stamp.length) {
+        if (f.length() < encryption_stamp.length + checksum_size) {
             return false;
         }
 
@@ -128,10 +128,6 @@ public class Cryptor {
             case ErrorCode.E_KEY_TOO_SMALL:
                 return "ERROR: Key length must be at least "
                         + "as large as the buffer size";
-            case ErrorCode.W_KEY_NOT_MULTIPLE_OF_1000:
-                return "WARNING: Key length should be a multiple "
-                        + "of 1000. The last " + f.length() % buffer_size + " will be"
-                        + "thrown away.";
             default:
                 break;
         }
@@ -173,7 +169,9 @@ public class Cryptor {
         if (key.length() < buffer_size) {
             return ErrorCode.E_KEY_TOO_SMALL;
         } else if (key.length() % buffer_size != 0) {
-            return ErrorCode.W_KEY_NOT_MULTIPLE_OF_1000;
+            System.out.println("WARNING: Key length should be a multiple "
+                    + "of 1000. The last " + file_input.length() % buffer_size + " will be"
+                    + "thrown away.");
         }
 
         // write encryption stamp
@@ -186,27 +184,27 @@ public class Cryptor {
 
             // while the file is not fully read
             while (bytes_remaining > 0) {
-                System.out.println("reading file");
+//                System.out.println("reading file");
                 //input.read() returns -1, 0, or more :
                 buffer_size = (int) ((buffer_size > bytes_remaining) ? bytes_remaining : buffer_size);
                 // read buffer into file_buffer
                 num_bytes_read = file_input.read(file_buffer, 0, buffer_size);
 
-                System.out.println("buffer size: " + buffer_size);
-                System.out.println("total bytes read:" + total_bytes_read);
-                System.out.println("num bytes read into buffer:" + num_bytes_read);
-                System.out.println("remaining num bytes:" + bytes_remaining);
-                System.out.println("file size:" + file.length());
+//                System.out.println("buffer size: " + buffer_size);
+//                System.out.println("total bytes read:" + total_bytes_read);
+//                System.out.println("num bytes read into buffer:" + num_bytes_read);
+//                System.out.println("remaining num bytes:" + bytes_remaining);
+//                System.out.println("file size:" + file.length());
 
                 if (num_bytes_read > 0) {
                     // circular key input
                     key_input.seek(total_bytes_read % (key.length() - key.length() % buffer_size));
                     key_input.read(key_buffer, 0, num_bytes_read);
                     encrypted_buffer = crypt_bytes(key_buffer, file_buffer);
-                    System.out.println("file size:" + file.length());
+//                    System.out.println("file size:" + file.length());
                     file_output.seek(total_bytes_read);
                     file_output.write(encrypted_buffer, 0, num_bytes_read);
-                    System.out.println("file size:" + file.length());
+//                    System.out.println("file size:" + file.length());
 
                     total_bytes_read += num_bytes_read;
                     bytes_remaining -= num_bytes_read;
@@ -234,8 +232,10 @@ public class Cryptor {
 
             FileIO.log("total Num bytes read: " + total_bytes_read);
         } catch (OutOfMemoryError e) {
+            return ErrorCode.E_OUT_OF_MEMORY;
 
         } catch (FileNotFoundException ex) {
+            
             FileIO.log("File not found.");
         } finally {
             System.out.println("file size:" + file.length());
