@@ -26,7 +26,7 @@ Kryptonite is a file encryption utility that I made in Java
 
 The key could be any file. To have the most entropy I usually generate a key using the following command in Linux:
 
-`cat /etc/urandom`
+`dd if=/dev/urandom bs=5MB count=1 of=./key_file`
 
 
 ## Technical Specs
