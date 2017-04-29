@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Kryptonite:jar">
+    <output-path>$PROJECT_DIR$/dist</output-path>
+    <root id="archive" name="Kryptonite.jar">
+      <element id="module-output" name="Kryptonite" />
+    </root>
+  </artifact>
+</component>
