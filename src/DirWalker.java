@@ -7,48 +7,47 @@
 /**
  *
  * @author          Behnam Azizi
- * @date            Feb. 15, 2015
- * @description     This class is used to traverse a directory
- * 
+ * @date Feb. 15, 2015
+ * @description This class is used to traverse a directory
+ *
  */
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class DirWalker {
 
-
     public static boolean isSymlink(File file) throws IOException {
-      if (file == null)
-        throw new NullPointerException("File must not be null");
-      File canon;
-      if (file.getParent() == null) {
-        canon = file;
-      } else {
-        File canonDir = file.getParentFile().getCanonicalFile();
-        canon = new File(canonDir, file.getName());
-      }
-      return !canon.getCanonicalFile().equals(canon.getAbsoluteFile());
-    }    
+        if (file == null) {
+            throw new NullPointerException("File must not be null");
+        }
+        File canon;
+        if (file.getParent() == null) {
+            canon = file;
+        } else {
+            File canonDir = file.getParentFile().getCanonicalFile();
+            canon = new File(canonDir, file.getName());
+        }
+        return !canon.getCanonicalFile().equals(canon.getAbsoluteFile());
+    }
 
-    
-    public static ArrayList<File> walk( String path ) throws IOException {
+    public static ArrayList<File> walk(String path) throws IOException {
 
-        File root = new File( path );
+        File root = new File(path);
         File[] list = root.listFiles();
         ArrayList<File> output = new ArrayList<File>();
 
-        if (list == null) return output;
+        if (list == null) {
+            return output;
+        }
 
-        for ( File f : list ) {
-            if(!isSymlink(f)){
-                if ( f.isDirectory() ) {
-                    System.out.println( "Dir:" + f.getAbsoluteFile() );
-                    output.addAll(walk( f.getAbsolutePath() ));
-                }
-                else {
-    //                System.out.println( "File:" + f.getAbsoluteFile() );
+        for (File f : list) {
+            if (!isSymlink(f)) {
+                if (f.isDirectory()) {
+                    System.out.println("Dir:" + f.getAbsoluteFile());
+                    output.addAll(walk(f.getAbsolutePath()));
+                } else {
+                    //                System.out.println( "File:" + f.getAbsoluteFile() );
                     output.add(f.getAbsoluteFile());
                 }
             }
