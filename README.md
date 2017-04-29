@@ -28,8 +28,6 @@ The key could be any file. To have the most entropy I usually generate a key usi
 
 `cat /etc/urandom`
 
-## GUI
-Running `java -jar Kryptonite.jar` brings up the GUI, however, I no longer maintain the GUI and I do not recommend the GUI being used.
 
 ## Technical Specs
 - Kryptonite uses bit-wise Vigenere cipher to encrypt files
