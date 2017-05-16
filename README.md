@@ -37,5 +37,5 @@ The key could be any file. To have the most entropy I usually generate a key usi
 
 
 ## Disclaimer
-- I will not be responsible for wrong usage of Kryptonite (e.g. as randomsare etc.)
+- I will not be responsible for wrong usage of Kryptonite (e.g. as ransom-ware etc.)
 - I will not be responsible for loss of data due to possible bugs that may exist in Kryptonite (e.g., Power outage during encryption might result in files getting corrupted)
